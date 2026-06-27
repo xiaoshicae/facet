@@ -1,4 +1,5 @@
 mod ai;
+mod secrets;
 mod settings;
 mod tools;
 
@@ -8,6 +9,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             settings::save_setting,
             settings::get_setting_cmd,
+            secrets::secret_set,
+            secrets::secret_get,
+            secrets::secret_delete,
             tools::base64::base64_encode,
             tools::base64::base64_decode,
             tools::url::url_encode,
