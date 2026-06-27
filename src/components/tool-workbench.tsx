@@ -15,8 +15,12 @@ interface Props {
   meta?: string
   onInputChange: (v: string) => void
   inputPlaceholder?: string
-  language?: 'json' | 'xml' | 'html' | 'javascript' | 'plaintext'
+  language?: EditorLanguage
+  /** 输出区语言，默认与 language 一致（输入/输出语言不同的工具用，如 JSON↔YAML） */
+  outputLanguage?: EditorLanguage
 }
+
+type EditorLanguage = 'json' | 'xml' | 'html' | 'javascript' | 'typescript' | 'yaml' | 'plaintext'
 
 /** 所有工具复用的玻璃态双栏工作台（signature 组件）。 */
 export function ToolWorkbench(p: Props) {
@@ -64,7 +68,11 @@ export function ToolWorkbench(p: Props) {
           >
             <Copy />
           </Button>
-          <CodeEditor value={p.error ?? p.output} language={p.language} readOnly />
+          <CodeEditor
+            value={p.error ?? p.output}
+            language={p.error ? 'plaintext' : (p.outputLanguage ?? p.language)}
+            readOnly
+          />
         </div>
       </div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">

@@ -7,7 +7,7 @@ import '@/lib/monaco-setup'
 interface CodeEditorProps {
   value: string
   onChange?: (value: string) => void
-  language?: 'json' | 'xml' | 'html' | 'javascript' | 'plaintext'
+  language?: 'json' | 'xml' | 'html' | 'javascript' | 'typescript' | 'yaml' | 'plaintext'
   placeholder?: string
   readOnly?: boolean
   className?: string
