@@ -75,8 +75,12 @@ export function ToolWorkbench(p: Props) {
           />
         </div>
       </div>
-      <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
-        {p.error ? <span className="text-destructive">✕ {p.error}</span> : <span>{p.meta}</span>}
+      <div className="flex items-center gap-2 text-xs tabular-nums">
+        {p.error ? (
+          <span className="text-destructive">✕ 解析失败，详见右侧</span>
+        ) : (
+          <span className="text-muted-foreground">{p.meta}</span>
+        )}
       </div>
     </div>
   )

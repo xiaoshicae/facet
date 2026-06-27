@@ -14,10 +14,24 @@ fn ts_type(v: &Value, indent: usize) -> String {
         Value::Bool(_) => "boolean".to_string(),
         Value::Number(_) => "number".to_string(),
         Value::String(_) => "string".to_string(),
-        Value::Array(arr) => match arr.first() {
-            Some(first) => format!("{}[]", ts_type(first, indent)),
-            None => "unknown[]".to_string(),
-        },
+        Value::Array(arr) => {
+            if arr.is_empty() {
+                return "unknown[]".to_string();
+            }
+            // 异构数组 → 元素类型的联合
+            let mut types: Vec<String> = Vec::new();
+            for item in arr {
+                let t = ts_type(item, indent);
+                if !types.contains(&t) {
+                    types.push(t);
+                }
+            }
+            if types.len() == 1 {
+                format!("{}[]", types[0])
+            } else {
+                format!("({})[]", types.join(" | "))
+            }
+        }
         Value::Object(map) => {
             if map.is_empty() {
                 return "Record<string, unknown>".to_string();
@@ -72,6 +86,12 @@ mod tests {
     fn array_root() {
         let out = json_to_ts("[1,2]".into()).unwrap();
         assert!(out.contains("export type Root = number[];"));
+    }
+
+    #[test]
+    fn heterogeneous_array() {
+        let out = json_to_ts("[1,\"a\",true]".into()).unwrap();
+        assert!(out.contains("(number | string | boolean)[]"));
     }
 
     #[test]
