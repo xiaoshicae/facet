@@ -14,14 +14,3 @@ export function isShortcutTarget(target: EventTarget | null): boolean {
   if (target.closest('[data-facet-monaco-host]')) return true
   return false
 }
-
-/** 安全解析 JSON，失败时返回默认值 */
-export function safeJsonParse<T>(json: string | undefined | null, fallback: T): T {
-  if (!json) return fallback
-  try {
-    const parsed = JSON.parse(json)
-    return parsed ?? fallback
-  } catch {
-    return fallback
-  }
-}

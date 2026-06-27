@@ -2,40 +2,28 @@ import { useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { ToolWorkbench } from '@/components/tool-workbench'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useToolRun } from '@/hooks/use-tool-run'
+
+type Mode = 'encode' | 'decode'
 
 export default function UrlEncodeTool() {
-  const [mode, setMode] = useState<'encode' | 'decode'>('encode')
-  const [input, setInput] = useState('')
-  const [output, setOutput] = useState('')
-  const [error, setError] = useState<string>()
+  const [mode, setMode] = useState<Mode>('encode')
+  const { input, output, error, run } = useToolRun()
 
-  async function run(text: string, m = mode) {
-    setInput(text)
-    if (!text) {
-      setOutput('')
-      setError(undefined)
-      return
-    }
-    try {
-      const cmd = m === 'encode' ? 'url_encode' : 'url_decode'
-      setOutput(await invoke<string>(cmd, { input: text }))
-      setError(undefined)
-    } catch (e) {
-      setError(String(e))
-      setOutput('')
-    }
-  }
-
-  function switchMode(m: 'encode' | 'decode') {
-    setMode(m)
-    run(input, m)
-  }
+  const exec = (text: string, m = mode) =>
+    run(text, (t) => invoke<string>(m === 'encode' ? 'url_encode' : 'url_decode', { input: t }))
 
   return (
     <ToolWorkbench
       title="URL 编解码"
       toolbar={
-        <Tabs value={mode} onValueChange={(v) => switchMode(v as 'encode' | 'decode')}>
+        <Tabs
+          value={mode}
+          onValueChange={(v) => {
+            setMode(v as Mode)
+            exec(input, v as Mode)
+          }}
+        >
           <TabsList>
             <TabsTrigger value="encode">编码</TabsTrigger>
             <TabsTrigger value="decode">解码</TabsTrigger>
@@ -45,7 +33,7 @@ export default function UrlEncodeTool() {
       input={input}
       output={output}
       error={error}
-      onInputChange={(v) => run(v)}
+      onInputChange={(v) => exec(v)}
       inputPlaceholder={mode === 'encode' ? '输入要编码的 URL/文本…' : '输入要解码的内容…'}
       meta={`${new Blob([input]).size} 字节${error ? '' : input ? ' · ✓' : ''}`}
     />

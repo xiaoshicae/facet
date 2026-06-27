@@ -17,3 +17,6 @@ npm-debug.log*
 .DS_Store
 .idea/
 *.local
+
+# tsc build info
+tsconfig.tsbuildinfo

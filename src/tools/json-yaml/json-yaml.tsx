@@ -2,35 +2,16 @@ import { useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { ToolWorkbench } from '@/components/tool-workbench'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useToolRun } from '@/hooks/use-tool-run'
 
 type Dir = 'j2y' | 'y2j'
 
 export default function JsonYamlTool() {
   const [dir, setDir] = useState<Dir>('j2y')
-  const [input, setInput] = useState('')
-  const [output, setOutput] = useState('')
-  const [error, setError] = useState<string>()
+  const { input, output, error, run } = useToolRun()
 
-  async function run(text: string, d = dir) {
-    setInput(text)
-    if (!text.trim()) {
-      setOutput('')
-      setError(undefined)
-      return
-    }
-    try {
-      setOutput(await invoke<string>('json_yaml', { input: text, direction: d }))
-      setError(undefined)
-    } catch (e) {
-      setError(String(e))
-      setOutput('')
-    }
-  }
-
-  function switchDir(d: Dir) {
-    setDir(d)
-    run(input, d)
-  }
+  const exec = (text: string, d = dir) =>
+    run(text, (t) => invoke<string>('json_yaml', { input: t, direction: d }))
 
   return (
     <ToolWorkbench
@@ -38,7 +19,13 @@ export default function JsonYamlTool() {
       language={dir === 'j2y' ? 'json' : 'yaml'}
       outputLanguage={dir === 'j2y' ? 'yaml' : 'json'}
       toolbar={
-        <Tabs value={dir} onValueChange={(v) => switchDir(v as Dir)}>
+        <Tabs
+          value={dir}
+          onValueChange={(v) => {
+            setDir(v as Dir)
+            exec(input, v as Dir)
+          }}
+        >
           <TabsList>
             <TabsTrigger value="j2y">JSON → YAML</TabsTrigger>
             <TabsTrigger value="y2j">YAML → JSON</TabsTrigger>
@@ -48,7 +35,7 @@ export default function JsonYamlTool() {
       input={input}
       output={output}
       error={error}
-      onInputChange={(v) => run(v)}
+      onInputChange={(v) => exec(v)}
       inputPlaceholder={dir === 'j2y' ? '{ "key": "value" }' : 'key: value'}
       meta={`${new Blob([input]).size} 字节${error ? '' : input.trim() ? ' · ✓' : ''}`}
     />
