@@ -1,0 +1,14 @@
+import { create } from 'zustand'
+
+interface CommandState {
+  /** 命令面板开关 */
+  open: boolean
+  setOpen: (open: boolean) => void
+  toggle: () => void
+}
+
+export const useCommandStore = create<CommandState>((set) => ({
+  open: false,
+  setOpen: (open) => set({ open }),
+  toggle: () => set((s) => ({ open: !s.open })),
+}))
