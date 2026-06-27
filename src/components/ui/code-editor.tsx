@@ -42,11 +42,7 @@ export function CodeEditor({
   }, [])
 
   return (
-    <div
-      ref={containerRef}
-      data-facet-monaco-host=""
-      className={`relative h-full overflow-hidden ${className ?? ''}`}
-    >
+    <div ref={containerRef} className={`relative h-full overflow-hidden ${className ?? ''}`}>
       {!value && placeholder && (
         <div className="absolute inset-0 px-4 py-2 text-xs text-muted-foreground/40 font-mono pointer-events-none z-10 whitespace-pre-wrap">
           {placeholder}

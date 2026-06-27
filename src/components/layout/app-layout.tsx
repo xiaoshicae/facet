@@ -1,14 +1,16 @@
 import { useState, useCallback, useEffect } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import Sidebar from './sidebar'
 import { TitleBar } from './title-bar'
+import { ErrorBoundary } from '@/components/error-boundary'
 import { useGlobalShortcuts } from '@/hooks/use-global-shortcuts'
 
 const SIDEBAR_WIDTH = 248
 
 export default function AppLayout() {
   useGlobalShortcuts()
+  const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
   const toggle = useCallback(() => setCollapsed((v) => !v), [])
 
@@ -53,7 +55,9 @@ export default function AppLayout() {
       <main className="relative min-w-0 flex-1 overflow-hidden bg-background">
         <TitleBar />
         <div className="h-[calc(100%-2rem)] overflow-hidden">
-          <Outlet />
+          <ErrorBoundary key={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </main>
     </div>
