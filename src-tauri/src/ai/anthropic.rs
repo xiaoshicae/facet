@@ -1,11 +1,11 @@
-//! Anthropic Messages API 适配(/v1/messages,SSE 流式)。
+//! Anthropic Messages API 适配(/v1/messages)。
 //! Rust 无官方 SDK,按 REST 线格式手写;默认模型由前端传入(claude-opus-4-8)。
 
 use futures_util::StreamExt;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter};
 
-use super::AiRequest;
+use super::{AiRequest, AiRouteRequest, RouteResult};
 
 fn endpoint(base_url: &str) -> String {
     format!("{}/v1/messages", base_url.trim_end_matches('/'))
@@ -20,6 +20,23 @@ fn friendly_error(status: u16, body: &str) -> String {
         500..=599 => "服务暂时不可用,请稍后再试".to_string(),
         _ => format!("请求失败({status}): {body}"),
     }
+}
+
+/// 统一的 POST /v1/messages。
+async fn post(base_url: &str, api_key: &str, body: &Value) -> Result<reqwest::Response, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .map_err(|e| e.to_string())?;
+    client
+        .post(endpoint(base_url))
+        .header("x-api-key", api_key)
+        .header("anthropic-version", "2023-06-01")
+        .header("content-type", "application/json")
+        .json(body)
+        .send()
+        .await
+        .map_err(|e| format!("连接失败,请检查网络/代理: {e}"))
 }
 
 fn build_body(req: &AiRequest, stream: bool, max_tokens: u32) -> Value {
@@ -37,31 +54,57 @@ fn build_body(req: &AiRequest, stream: bool, max_tokens: u32) -> Value {
     body
 }
 
-async fn send(req: &AiRequest, body: &Value) -> Result<reqwest::Response, String> {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(120))
-        .build()
-        .map_err(|e| e.to_string())?;
-    client
-        .post(endpoint(&req.base_url))
-        .header("x-api-key", &req.api_key)
-        .header("anthropic-version", "2023-06-01")
-        .header("content-type", "application/json")
-        .json(body)
-        .send()
-        .await
-        .map_err(|e| format!("连接失败,请检查网络/代理: {e}"))
-}
-
 /// 轻量校验:发一个 max_tokens=16 的非流式请求,只看是否鉴权成功。
 pub async fn test(req: AiRequest) -> Result<String, String> {
-    let resp = send(&req, &build_body(&req, false, 16)).await?;
+    let resp = post(&req.base_url, &req.api_key, &build_body(&req, false, 16)).await?;
     let status = resp.status();
     if !status.is_success() {
         let text = resp.text().await.unwrap_or_default();
         return Err(friendly_error(status.as_u16(), &text));
     }
     Ok(format!("连接成功 · {}", req.model))
+}
+
+/// 工具路由:把工具目录作为 tools 发给模型,强制选一个工具调用,
+/// 返回选中的工具名与提取出的 input(不执行工具,由前端跳转预填)。
+pub async fn route(req: AiRouteRequest) -> Result<RouteResult, String> {
+    let body = json!({
+        "model": req.model,
+        "max_tokens": 1024,
+        "system": "你是工具路由器。根据用户需求,从提供的工具中选择最合适的一个调用,并把用户想用它处理的具体内容放进该工具的 input 参数。只调用一个工具。",
+        "tools": req.tools,
+        "tool_choice": { "type": "any" },
+        "messages": [{ "role": "user", "content": req.query }],
+    });
+
+    let resp = post(&req.base_url, &req.api_key, &body).await?;
+    let status = resp.status();
+    if !status.is_success() {
+        let text = resp.text().await.unwrap_or_default();
+        return Err(friendly_error(status.as_u16(), &text));
+    }
+
+    let v: Value = resp.json().await.map_err(|e| e.to_string())?;
+    let mut result = RouteResult { tool: None, input: None, text: None };
+    if let Some(content) = v.get("content").and_then(|c| c.as_array()) {
+        for block in content {
+            match block.get("type").and_then(|x| x.as_str()).unwrap_or("") {
+                "tool_use" => {
+                    result.tool = block.get("name").and_then(|x| x.as_str()).map(String::from);
+                    result.input = block
+                        .get("input")
+                        .and_then(|i| i.get("input"))
+                        .and_then(|x| x.as_str())
+                        .map(String::from);
+                }
+                "text" => {
+                    result.text = block.get("text").and_then(|x| x.as_str()).map(String::from);
+                }
+                _ => {}
+            }
+        }
+    }
+    Ok(result)
 }
 
 /// 流式:解析 SSE,把 content_block_delta 的文本增量按事件发给前端。
@@ -72,7 +115,7 @@ pub async fn stream(app: AppHandle, req: AiRequest) -> Result<(), String> {
         Err(msg)
     };
 
-    let resp = match send(&req, &build_body(&req, true, 4096)).await {
+    let resp = match post(&req.base_url, &req.api_key, &build_body(&req, true, 4096)).await {
         Ok(r) => r,
         Err(e) => return fail(&app, e),
     };

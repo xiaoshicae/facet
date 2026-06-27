@@ -19,4 +19,6 @@ export interface ToolMeta {
   detectClipboard?: (text: string) => boolean
   /** 可选：工具内 AI 副驾动作。加一项即在工作台出现，核心零改动 */
   aiActions?: AIAction[]
+  /** 可选：给 AI 路由的额外提示，帮助在自然语言下选对工具 */
+  aiHint?: string
 }

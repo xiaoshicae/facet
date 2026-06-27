@@ -1,8 +1,10 @@
-import type { ReactNode } from 'react'
+import { useContext, useEffect, type ReactNode } from 'react'
 import { CodeEditor } from '@/components/ui/code-editor'
 import { useResizable } from '@/hooks/use-resizable'
 import { Button } from '@/components/ui/button'
 import { ToolAI } from '@/components/ai/tool-ai'
+import { ToolContext } from '@/components/tool-context'
+import { usePrefillStore } from '@/stores/prefill-store'
 import { Copy } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -26,6 +28,16 @@ type EditorLanguage = 'json' | 'xml' | 'html' | 'javascript' | 'typescript' | 'y
 /** 所有工具复用的玻璃态双栏工作台（signature 组件）。 */
 export function ToolWorkbench(p: Props) {
   const { width, onMouseDown } = useResizable(0.5, 0.2, 0.8)
+  const tool = useContext(ToolContext)
+  const consumePrefill = usePrefillStore((s) => s.consume)
+  const onInputChange = p.onInputChange
+
+  // AI 路由跳转过来时,挂载即消费一次预填输入
+  useEffect(() => {
+    if (!tool) return
+    const pre = consumePrefill(tool.id)
+    if (pre != null) onInputChange(pre)
+  }, [tool, consumePrefill, onInputChange])
 
   async function copyOutput() {
     if (!p.output) return

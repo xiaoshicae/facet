@@ -4,7 +4,7 @@
 
 mod anthropic;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
 #[derive(Deserialize)]
@@ -37,6 +37,39 @@ pub async fn ai_run(app: AppHandle, req: AiRequest) -> Result<(), String> {
 pub async fn ai_test(req: AiRequest) -> Result<String, String> {
     match req.format.as_str() {
         "anthropic" => anthropic::test(req).await,
+        other => Err(format!("暂不支持的 provider 类型: {other}")),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiRouteRequest {
+    pub format: String,
+    pub base_url: String,
+    pub model: String,
+    pub api_key: String,
+    /// 用户的自然语言需求
+    pub query: String,
+    /// 前端按 registry 生成的 Anthropic tools 数组
+    pub tools: serde_json::Value,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RouteResult {
+    /// 选中的工具 id(= tool name)
+    pub tool: Option<String>,
+    /// 提取出的、要预填进该工具的输入
+    pub input: Option<String>,
+    /// 模型未选工具时的说明文字
+    pub text: Option<String>,
+}
+
+/// 工具路由:自然语言 → 选中一个工具 + 提取 input(不执行,前端跳转预填)。
+#[tauri::command]
+pub async fn ai_route(req: AiRouteRequest) -> Result<RouteResult, String> {
+    match req.format.as_str() {
+        "anthropic" => anthropic::route(req).await,
         other => Err(format!("暂不支持的 provider 类型: {other}")),
     }
 }

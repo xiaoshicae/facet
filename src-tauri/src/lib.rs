@@ -29,6 +29,7 @@ pub fn run() {
             tools::number_base::number_base,
             ai::ai_run,
             ai::ai_test,
+            ai::ai_route,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
