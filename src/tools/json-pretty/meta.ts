@@ -13,5 +13,20 @@ const meta: ToolMeta = {
     const s = t.trim()
     return (s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'))
   },
+  aiActions: [
+    {
+      id: 'repair',
+      label: '修复这段 JSON',
+      writeBack: true,
+      prompt: ({ input }) =>
+        `下面是一段可能有语法错误的 JSON。请只返回修正后的合法 JSON 本身，不要任何解释、不要代码块标记：\n\n${input}`,
+    },
+    {
+      id: 'explain',
+      label: '解释这段 JSON 的结构',
+      prompt: ({ input }) =>
+        `请用中文简要说明下面这段 JSON 的结构与各字段含义，分条列出：\n\n${input}`,
+    },
+  ],
 }
 export default meta

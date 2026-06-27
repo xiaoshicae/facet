@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { CodeEditor } from '@/components/ui/code-editor'
 import { useResizable } from '@/hooks/use-resizable'
 import { Button } from '@/components/ui/button'
+import { ToolAI } from '@/components/ai/tool-ai'
 import { Copy } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -40,7 +41,10 @@ export function ToolWorkbench(p: Props) {
     <div className="flex h-full flex-col gap-3 p-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold tracking-tight">{p.title}</h2>
-        {p.toolbar}
+        <div className="flex items-center gap-2">
+          {p.toolbar}
+          <ToolAI input={p.input} output={p.output} onWriteBack={p.onInputChange} />
+        </div>
       </div>
       <div className="flex min-h-0 flex-1">
         <div

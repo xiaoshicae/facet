@@ -1,5 +1,6 @@
 import { useThemeStore } from '@/stores/theme-store'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { SettingsAI } from './settings-ai'
 import { cn } from '@/lib/utils'
 import { Monitor, Moon, Sun } from 'lucide-react'
 
@@ -45,6 +46,8 @@ export function Settings() {
             </div>
           </CardContent>
         </Card>
+
+        <SettingsAI />
 
         <p className="mt-6 text-center text-xs text-muted-foreground/60">Facet · v0.1.0</p>
       </div>

@@ -1,3 +1,4 @@
+mod ai;
 mod settings;
 mod tools;
 
@@ -26,6 +27,8 @@ pub fn run() {
             tools::case_convert::case_convert,
             tools::color::color_convert,
             tools::number_base::number_base,
+            ai::ai_run,
+            ai::ai_test,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
