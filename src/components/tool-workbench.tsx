@@ -32,12 +32,13 @@ export function ToolWorkbench(p: Props) {
   const consumePrefill = usePrefillStore((s) => s.consume)
   const onInputChange = p.onInputChange
 
-  // AI 路由跳转过来时,挂载即消费一次预填输入
+  // AI 路由跳转过来时,挂载即消费一次预填输入(只在工具切换时触发)
   useEffect(() => {
     if (!tool) return
     const pre = consumePrefill(tool.id)
     if (pre != null) onInputChange(pre)
-  }, [tool, consumePrefill, onInputChange])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tool?.id])
 
   async function copyOutput() {
     if (!p.output) return

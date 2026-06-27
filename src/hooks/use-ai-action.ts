@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import type { AIAction, AIActionContext, AIProvider } from '@/lib/ai'
@@ -12,6 +12,15 @@ export function useAIAction() {
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string>()
   const seq = useRef(0)
+  const offs = useRef<Array<() => void>>([])
+
+  const cleanup = useCallback(() => {
+    offs.current.forEach((f) => f())
+    offs.current = []
+  }, [])
+
+  // 卸载时清理仍挂着的事件监听
+  useEffect(() => cleanup, [cleanup])
 
   const reset = useCallback(() => {
     setOutput('')
@@ -21,22 +30,20 @@ export function useAIAction() {
 
   const run = useCallback(
     async (provider: AIProvider, action: AIAction, ctx: AIActionContext) => {
+      cleanup() // 清掉上一次可能仍在的监听
       const id = `${Date.now()}-${++seq.current}`
       setOutput('')
       setError(undefined)
       setRunning(true)
 
-      const offs: Array<() => void> = []
-      const cleanup = () => offs.forEach((f) => f())
-
-      offs.push(await listen<string>(`ai-chunk-${id}`, (e) => setOutput((o) => o + e.payload)))
-      offs.push(
+      offs.current.push(await listen<string>(`ai-chunk-${id}`, (e) => setOutput((o) => o + e.payload)))
+      offs.current.push(
         await listen(`ai-done-${id}`, () => {
           cleanup()
           setRunning(false)
         })
       )
-      offs.push(
+      offs.current.push(
         await listen<string>(`ai-error-${id}`, (e) => {
           cleanup()
           setError(e.payload)
@@ -62,7 +69,7 @@ export function useAIAction() {
         setRunning(false)
       }
     },
-    []
+    [cleanup]
   )
 
   return { output, running, error, run, reset }
